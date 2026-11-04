@@ -1,0 +1,29 @@
+name: Matrix QuanSMP Killer
+on:
+  workflow_dispatch:
+
+jobs:
+  bedrock_spam:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        bot_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+      fail-fast: false
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Bedrock Protocol
+        run: |
+          npm init -y
+          npm install bedrock-protocol
+
+      - name: Fire In The Hole (Runner ${{ matrix.bot_id }})
+        run: |
+          node bot.js
