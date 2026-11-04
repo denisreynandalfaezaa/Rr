@@ -1,13 +1,13 @@
-name: Matrix QuanSMP Killer
+name: Super Brutal MC Spammer
 on:
   workflow_dispatch:
 
 jobs:
-  bedrock_spam:
+  spam_matrix:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        bot_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        runner_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
       fail-fast: false
 
     steps:
@@ -19,11 +19,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Bedrock Protocol
+      - name: Install Dependencies
         run: |
           npm init -y
-          npm install bedrock-protocol
+          npm install mineflayer proxy-agent
 
-      - name: Fire In The Hole (Runner ${{ matrix.bot_id }})
+      - name: Execute Brutal Spam
         run: |
           node bot.js
